@@ -1,6 +1,7 @@
 "use client";
 
 import { getDivisionArray, getProgressValue } from "@/utils/helpers";
+import { cva, type VariantProps } from "class-variance-authority";
 import {
 	AnimatePresence,
 	motion,
@@ -20,11 +21,13 @@ const Slider = ({
 	range = [0, 100],
 	className,
 	label,
+	progressBarClasses,
 }: {
 	divisions: number;
 	range: [number, number];
 	className?: string;
 	label?: string;
+	progressBarClasses?: string;
 }) => {
 	if (range[0] > range[1]) {
 		throw new Error("Range[0] must be less than Range[1]");
@@ -56,15 +59,27 @@ const Slider = ({
 		});
 	}, [actual_progress, bounds.width]);
 	const [panning, setPanning] = useState(false);
+	const [tapping, setTapping] = useState(false);
 	const labelRef = useRef<HTMLDivElement>(null);
 	const valueRef = useRef<HTMLDivElement>(null);
+	const interacting = panning || tapping;
+
+	const DragBox = () => (
+		<motion.div
+			className={twMerge(
+				"absolute h-2/3 w-1 bg-gray-500/40 rounded-full right-1"
+			)}
+			animate={{ scale: interacting ? 1.2 : 1 }}
+			transition={{ duration: 0.08 }}
+		></motion.div>
+	);
 	return (
 		<AnimatePresence>
 			<motion.div
 				ref={ref}
 				className={twMerge(
 					"relative flex-col flex w-[400px] h-10 bg-white/10 rounded-xl backdrop-blur-sm border-white/50 border-[1px] overflow-hidden group cursor-grab",
-					panning && "cursor-grabbing",
+					interacting && "cursor-grabbing",
 					className ?? ""
 				)}
 			>
@@ -81,6 +96,9 @@ const Slider = ({
 					}}
 					onPanEnd={() => {
 						setPanning(false);
+					}}
+					onMouseUp={() => {
+						setTapping(false);
 					}}
 					onPan={(event, info) => {
 						let deltaInPercent = info.delta.x / bounds.width;
@@ -105,7 +123,7 @@ const Slider = ({
 						) {
 							newPercent = 1;
 						}
-
+						setTapping(true);
 						progress.set(newPercent);
 						actual_progress.set(
 							getProgressValue(newPercent, divisionArray)
@@ -114,16 +132,13 @@ const Slider = ({
 					className="touch-none relative w-full h-full bg-white/30 rounded-none "
 				>
 					<motion.div
-						className="bg-white/50 flex items-center h-full rounded-r-lg relative"
+						className={twMerge(
+							"bg-white/50 flex items-center h-full rounded-r-lg relative",
+							progressBarClasses ?? ""
+						)}
 						style={{ width }}
 					>
-						{showDragBox && (
-							<motion.div
-								className={
-									"absolute h-2/3 w-1 bg-gray-500/40 rounded-full right-1"
-								}
-							></motion.div>
-						)}
+						{showDragBox && <DragBox />}
 						{rangeValue === range[1] && (
 							<motion.div
 								className={

@@ -9,45 +9,71 @@ import {
 	useSpring,
 	useTransform,
 } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { SetStateAction, useEffect, useRef, useState } from "react";
 import useMeasure from "react-use-measure";
 import { twMerge } from "tailwind-merge";
 
 let clamp = (num: number, min: number, max: number) =>
 	Math.max(Math.min(num, max), min);
+type ConvertToSpecificRange<T extends [number, number]> = T extends [
+	infer A,
+	infer B
+]
+	? A extends number
+		? B extends number
+			? [`${A}`, `${B}`]
+			: never
+		: never
+	: never;
 
-const Slider = ({
-	divisions = 10,
-	range = [0, 100],
+const Slider = <T extends [number, number]>({
+	divisions,
+	range,
 	className,
 	label,
+	setValue,
 	progressBarClasses,
 }: {
+	range: T;
 	divisions: number;
-	range: [number, number];
 	className?: string;
 	label?: string;
 	progressBarClasses?: string;
+	setValue?: React.Dispatch<React.SetStateAction<number>>;
 }) => {
 	if (range[0] > range[1]) {
-		throw new Error("Range[0] must be less than Range[1]");
+		throw new Error(
+			"First item in the range must be less than the second item in the range"
+		);
 	}
-	const [rangeValue, setRangeValue] = useState(range[0]);
+	const [min, max] = [range[0], range[1]];
+	const divisionArray = getDivisionArray(divisions as number);
 
-	const divisionArray = getDivisionArray(divisions);
+	// framer-motion hooks
 	let [ref, bounds] = useMeasure();
 	const progress = useMotionValue(0);
 	const actual_progress = useMotionValue(0);
-	const [showDragBox, setShowDragBox] = useState(true);
 	const spring = useSpring(actual_progress, {
 		stiffness: 4500,
 		damping: 200,
 	});
 	let width = useTransform(spring, (v) => `${v * 100}%`);
 
+	// react hooks
+	const [showDragBox, setShowDragBox] = useState(true);
+	const [rangeValue, setRangeValue] = useState(range[0]);
+	const [panning, setPanning] = useState(false);
+	const [tapping, setTapping] = useState(false);
+	const labelRef = useRef<HTMLDivElement>(null);
+	const valueRef = useRef<HTMLDivElement>(null);
+	const interacting = panning || tapping;
+
 	useEffect(() => {
 		actual_progress.on("change", (v) => {
 			setRangeValue(Math.floor(range[0] + v * (range[1] - range[0])));
+			if (setValue) {
+				setValue(Math.floor(range[0] + v * (range[1] - range[0])));
+			}
 			if (
 				v < (labelRef.current?.clientWidth ?? 72) / bounds.width ||
 				v > 1 - (valueRef.current?.clientWidth ?? 72) / bounds.width
@@ -58,11 +84,6 @@ const Slider = ({
 			}
 		});
 	}, [actual_progress, bounds.width]);
-	const [panning, setPanning] = useState(false);
-	const [tapping, setTapping] = useState(false);
-	const labelRef = useRef<HTMLDivElement>(null);
-	const valueRef = useRef<HTMLDivElement>(null);
-	const interacting = panning || tapping;
 
 	const DragBox = () => (
 		<motion.div
@@ -119,7 +140,7 @@ const Slider = ({
 
 						if (
 							newPercent >
-							divisionArray.at(-1)!! + 1 / divisions / 2
+							divisionArray.at(-1)!! + 1 / Number(divisions) / 2
 						) {
 							newPercent = 1;
 						}

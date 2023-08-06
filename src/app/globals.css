@@ -24,7 +24,7 @@ body {
       rgb(var(--background-end-rgb))
     )
     rgb(var(--background-start-rgb));
-  background-image: url("https://www.wallpaperup.com/uploads/wallpapers/2015/04/24/670042/7d0229c98d4d3b73aa7801bbbe951571.jpg");
+  /* background-image: url("https://www.wallpaperup.com/uploads/wallpapers/2015/04/24/670042/7d0229c98d4d3b73aa7801bbbe951571.jpg"); */
   background-size: cover;
   
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
 import {
 	AnimatePresence,
 	MotionValue,
@@ -11,16 +11,15 @@ import {
 	useSpring,
 	useTransform,
 } from "framer-motion";
-import useMeasure from "react-use-measure";
+import React, { useEffect } from "react";
 import { AiOutlineWifi } from "react-icons/ai";
 import { BsBatteryFull } from "react-icons/bs";
-import { RiRotateLockLine } from "react-icons/ri";
-import { IoIosAirplane, IoIosBluetooth } from "react-icons/io";
 import { FaAppStoreIos } from "react-icons/fa";
-import * as Dialog from "@radix-ui/react-dialog";
-import SliderParent from "../Slider/SliderParent";
-import { WeightedSlider } from "../Slider";
+import { IoIosAirplane, IoIosBluetooth } from "react-icons/io";
+import { RiRotateLockLine } from "react-icons/ri";
+import useMeasure from "react-use-measure";
 import { twMerge } from "tailwind-merge";
+import SliderParent from "../Slider/SliderParent";
 
 const Navbar = () => {
 	const PanelItem = ({
@@ -48,7 +47,7 @@ const Navbar = () => {
 		</AnimatePresence>
 	);
 	let [ref, bounds] = useMeasure();
-	const progress = useMotionValue(0.5);
+	const progress = useMotionValue(0);
 	// hooks dependant on progress
 	const progress_to_blur = useTransform(progress, [0, 2], [0, 10]);
 	const progress_to_icon_x = useSpring(
@@ -144,9 +143,12 @@ const Navbar = () => {
 					setPanning(false);
 				}
 			}}
-			onPan={(event, info) => {
+			onPan={(_, info) => {
 				let deltaInPercent = info.delta.y / bounds.height;
 				let newPercent = progress.get() + deltaInPercent;
+				if (progress.get() < 0 && deltaInPercent < 0) {
+					newPercent = 0;
+				}
 				progress.set(newPercent);
 			}}
 			className="touch-none bg-white border-gray-200 dark:bg-gray-900 w-full flex justify-end h-10 items-center relative"
@@ -159,10 +161,47 @@ const Navbar = () => {
 					{panning || open ? (
 						<Dialog.Portal forceMount>
 							<Dialog.Overlay
+								onClick={() => {
+									setOpen(false);
+								}}
 								asChild
-								className="fixed inset-0 z-10"
+								className="fixed inset-0 z-10 top-0 left-0 right-0 bottom-0 grid place-items-center overflow-y-auto"
 							>
 								<motion.div
+									onPan={(_, info) => {
+										let deltaInPercent =
+											info.delta.y / bounds.height;
+										let newPercent =
+											progress.get() + deltaInPercent;
+										if (
+											progress.get() < 0 &&
+											deltaInPercent < 0
+										) {
+											newPercent = 0;
+										}
+										progress.set(newPercent);
+									}}
+									onPanEnd={(event, { offset, velocity }) => {
+										if (
+											offset.y > bounds.height * 0.8 ||
+											velocity.y > 30
+										) {
+											setOpen(true);
+											progress.set(2);
+											setPanning(false);
+										} else {
+											setOpen(false);
+											animate(progress, 0, {
+												type: "inertia",
+												bounceStiffness: 300,
+												bounceDamping: 40,
+												timeConstant: 300,
+												min: 0,
+												max: 0,
+											});
+											setPanning(false);
+										}
+									}}
 									initial={{ opacity: 0 }}
 									animate={{
 										opacity: 1,
@@ -175,7 +214,13 @@ const Navbar = () => {
 									}}
 								></motion.div>
 							</Dialog.Overlay>
-							<Dialog.Content className="z-20 fixed right-0 top-10 mr-20 focus:outline-none">
+							<Dialog.Content
+								onPointerDownOutside={(e) => {
+									e.preventDefault();
+								}}
+								asChild
+								className="z-20 fixed right-0 top-10 mr-20 focus:outline-none"
+							>
 								<motion.div
 									transition={{
 										duration: 2,
@@ -232,19 +277,14 @@ const Navbar = () => {
 													<PanelItem />
 												</div>
 												<div className="flex gap-4 col-span-2">
-													<PanelItem className="col-span-2 w-full h-full">
-														<WeightedSlider
-															className="w-full h-10"
-															divisions={5}
-															range={[0, 100]}
-															label="Brightness"
-														/>
+													<PanelItem className="col-span-2 h-full w-full p-4">
+														<SliderParent></SliderParent>
 													</PanelItem>
 												</div>
-												<div className="flex gap-4">
+												{/* <div className="flex gap-4">
 													<PanelItem />
 													<PanelItem />
-												</div>
+												</div> */}
 											</motion.div>
 										) : null}
 									</AnimatePresence>

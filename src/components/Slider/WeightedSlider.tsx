@@ -32,6 +32,7 @@ const Slider = <T extends [number, number]>({
 	className,
 	label,
 	setValue,
+	// value,
 	progressBarClasses,
 }: {
 	range: T;
@@ -40,6 +41,7 @@ const Slider = <T extends [number, number]>({
 	label?: string;
 	progressBarClasses?: string;
 	setValue?: React.Dispatch<React.SetStateAction<number>>;
+	value?: number;
 }) => {
 	if (range[0] > range[1]) {
 		throw new Error(
@@ -48,7 +50,6 @@ const Slider = <T extends [number, number]>({
 	}
 	const [min, max] = [range[0], range[1]];
 	const divisionArray = getDivisionArray(divisions as number);
-
 	// framer-motion hooks
 	let [ref, bounds] = useMeasure();
 	const progress = useMotionValue(0);
@@ -83,7 +84,7 @@ const Slider = <T extends [number, number]>({
 				setShowDragBox(true);
 			}
 		});
-	}, [actual_progress, bounds.width]);
+	}, [actual_progress]);
 
 	const DragBox = () => (
 		<motion.div
@@ -99,7 +100,7 @@ const Slider = <T extends [number, number]>({
 			<motion.div
 				ref={ref}
 				className={twMerge(
-					"relative flex-col flex w-[400px] h-10 bg-white/10 rounded-xl backdrop-blur-sm border-white/50 border-[1px] overflow-hidden group cursor-grab",
+					"relative flex-col flex w-full h-10 bg-white/10 rounded-xl backdrop-blur-sm border-white/50 border-[1px] overflow-hidden group cursor-grab",
 					interacting && "cursor-grabbing",
 					className ?? ""
 				)}
@@ -116,12 +117,14 @@ const Slider = <T extends [number, number]>({
 						setPanning(true);
 					}}
 					onPanEnd={() => {
+						// console.log("pan end");
 						setPanning(false);
 					}}
 					onMouseUp={() => {
 						setTapping(false);
 					}}
 					onPan={(event, info) => {
+						// console.log("pan");
 						let deltaInPercent = info.delta.x / bounds.width;
 						let newPercent = clamp(
 							progress.get() + deltaInPercent,
